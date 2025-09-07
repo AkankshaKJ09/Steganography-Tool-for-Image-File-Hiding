@@ -1,4 +1,3 @@
-// static/js/script.js
 document.addEventListener('DOMContentLoaded', function() {
     // Tab switching
     const tabButtons = document.querySelectorAll('.tab-button');
@@ -195,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Create form data
-        const formData = new FormData();
+        const formData = newFormData();
         formData.append('stegoImage', stegoImage);
         
         if (useDecryption) {
