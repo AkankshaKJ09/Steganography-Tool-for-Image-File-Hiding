@@ -1,0 +1,118 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steganography Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-lock"></i> Steganography Tool</h1>
+            <p>Hide your secrets inside images</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="encode">Encode</button>
+            <button class="tab-button" data-tab="decode">Decode</button>
+        </div>
+
+        <div class="tab-content active" id="encode-tab">
+            <div class="card">
+                <h2>Encode Secret Data</h2>
+                
+                <div class="form-group">
+                    <label for="coverImage">Cover Image:</label>
+                    <div class="file-upload">
+                        <input type="file" id="coverImage" accept="image/*">
+                        <label for="coverImage" class="file-label">
+                            <i class="fas fa-upload"></i> Choose Image
+                        </label>
+                    </div>
+                    <div id="coverPreview" class="image-preview"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Data Type:</label>
+                    <div class="radio-group">
+                        <input type="radio" id="textType" name="secretType" value="text" checked>
+                        <label for="textType">Text</label>
+                        <input type="radio" id="fileType" name="secretType" value="file">
+                        <label for="fileType">File</label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="textInput">
+                    <label for="secretText">Secret Text:</label>
+                    <textarea id="secretText" rows="4" placeholder="Enter your secret message here..."></textarea>
+                </div>
+
+                <div class="form-group" id="fileInput" style="display: none;">
+                    <label for="secretFile">Secret File:</label>
+                    <div class="file-upload">
+                        <input type="file" id="secretFile">
+                        <label for="secretFile" class="file-label">
+                            <i class="fas fa-file"></i> Choose File
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="checkbox" id="encryption">
+                    <label for="encryption">Encrypt Data</label>
+                </div>
+
+                <div class="form-group" id="passwordGroup" style="display: none;">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" placeholder="Enter encryption password">
+                </div>
+
+                <button id="encodeBtn" class="btn-primary">
+                    <i class="fas fa-shield-alt"></i> Encode Data
+                </button>
+
+                <div id="encodeResult" class="result-container"></div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="decode-tab">
+            <div class="card">
+                <h2>Decode Secret Data</h2>
+                
+                <div class="form-group">
+                    <label for="stegoImage">Stego Image:</label>
+                    <div class="file-upload">
+                        <input type="file" id="stegoImage" accept="image/*">
+                        <label for="stegoImage" class="file-label">
+                            <i class="fas fa-upload"></i> Choose Image
+                        </label>
+                    </div>
+                    <div id="stegoPreview" class="image-preview"></div>
+                </div>
+
+                <div class="form-group">
+                    <input type="checkbox" id="decryption">
+                    <label for="decryption">Decrypt Data</label>
+                </div>
+
+                <div class="form-group" id="decryptPasswordGroup" style="display: none;">
+                    <label for="decryptPassword">Password:</label>
+                    <input type="password" id="decryptPassword" placeholder="Enter decryption password">
+                </div>
+
+                <button id="decodeBtn" class="btn-primary">
+                    <i class="fas fa-search"></i> Decode Data
+                </button>
+
+                <div id="decodeResult" class="result-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
