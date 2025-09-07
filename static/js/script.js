@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Decode data
+    // Decode data - FIXED THIS SECTION
     const decodeBtn = document.getElementById('decodeBtn');
     const decodeResult = document.getElementById('decodeResult');
     
@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Create form data
-        const formData = newFormData();
+        const formData = new FormData(); // Fixed: was newFormData() which is incorrect
         formData.append('stegoImage', stegoImage);
         
         if (useDecryption) {
