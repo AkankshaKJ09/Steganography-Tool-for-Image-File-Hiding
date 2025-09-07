@@ -1,7 +1,5 @@
-# app.py
 from flask import Flask, render_template, request, send_file, jsonify
 from PIL import Image
-import stepic
 import io
 import base64
 import os
@@ -17,6 +15,72 @@ app.config['UPLOAD_FOLDER'] = 'temp_uploads'
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
+def encode_data(image, data):
+    """Encode data into image using LSB steganography"""
+    # Convert data to binary
+    binary_data = ''.join([format(byte, '08b') for byte in data])
+    
+    # Add end of message marker
+    binary_data += '1111111111111110'  # 0xFFFE as end marker
+    
+    # Get image pixels
+    pixels = list(image.getdata())
+    width, height = image.size
+    
+    # Check if image can hold the data
+    if len(binary_data) > width * height * 3:
+        raise ValueError("Image too small to hold the data")
+    
+    data_index = 0
+    encoded_pixels = []
+    
+    for pixel in pixels:
+        # Convert pixel to list for modification
+        new_pixel = list(pixel)
+        
+        for i in range(3):  # R, G, B channels
+            if data_index < len(binary_data):
+                # Clear the least significant bit
+                new_pixel[i] = new_pixel[i] & ~1
+                # Set the least significant bit to the data bit
+                new_pixel[i] |= int(binary_data[data_index])
+                data_index += 1
+        
+        encoded_pixels.append(tuple(new_pixel))
+    
+    # Create new image with encoded data
+    encoded_image = Image.new(image.mode, (width, height))
+    encoded_image.putdata(encoded_pixels)
+    return encoded_image
+
+def decode_data(image):
+    """Decode data from image using LSB steganography"""
+    pixels = list(image.getdata())
+    binary_data = ''
+    
+    for pixel in pixels:
+        for value in pixel[:3]:  # R, G, B channels
+            # Extract the least significant bit
+            binary_data += str(value & 1)
+    
+    # Find the end of message marker
+    end_marker = binary_data.find('1111111111111110')
+    if end_marker == -1:
+        raise ValueError("No end marker found - possibly corrupted data")
+    
+    # Extract the actual data (before the end marker)
+    binary_data = binary_data[:end_marker]
+    
+    # Convert binary to bytes
+    bytes_data = bytearray()
+    for i in range(0, len(binary_data), 8):
+        if i + 8 > len(binary_data):
+            break
+        byte = binary_data[i:i+8]
+        bytes_data.append(int(byte, 2))
+    
+    return bytes(bytes_data)
+
 def generate_key(password, salt=None):
     if salt is None:
         salt = os.urandom(16)
@@ -31,7 +95,7 @@ def generate_key(password, salt=None):
 
 def encrypt_data(data, password):
     salt = os.urandom(16)
-    key, salt = self.generate_key(password, salt)
+    key, salt = generate_key(password, salt)
     f = Fernet(key)
     encrypted_data = f.encrypt(data)
     return salt + encrypted_data  # Prepend salt to encrypted data
@@ -60,7 +124,7 @@ def encode():
         password = request.form.get('password', '')
         
         # Read the image
-        image = Image.open(image_file.stream)
+        image = Image.open(image_file.stream).convert('RGB')
         
         # Prepare data to encode
         if secret_type == 'text':
@@ -79,7 +143,7 @@ def encode():
             secret_data = encrypt_data(secret_data, password)
         
         # Encode data into image
-        encoded_image = stepic.encode(image, secret_data)
+        encoded_image = encode_data(image, secret_data)
         
         # Save to bytes buffer
         img_io = io.BytesIO()
@@ -107,10 +171,10 @@ def decode():
         password = request.form.get('decryptPassword', '')
         
         # Read the image
-        image = Image.open(stego_image.stream)
+        image = Image.open(stego_image.stream).convert('RGB')
         
         # Decode the data
-        decoded_data = stepic.decode(image)
+        decoded_data = decode_data(image)
         
         # Decrypt if requested
         if use_decryption:
@@ -169,4 +233,5 @@ def download_file(filename):
     )
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
