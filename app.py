@@ -3,6 +3,7 @@ from PIL import Image
 import io
 import base64
 import os
+import struct
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -17,11 +18,12 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 def encode_data(image, data):
     """Encode data into image using LSB steganography"""
-    # Convert data to binary
-    binary_data = ''.join([format(byte, '08b') for byte in data])
+    # Add length prefix to data
+    data_len = len(data)
+    data_with_len = struct.pack('>I', data_len) + data
     
-    # Add end of message marker
-    binary_data += '1111111111111110'  # 0xFFFE as end marker
+    # Convert data to binary
+    binary_data = ''.join([format(byte, '08b') for byte in data_with_len])
     
     # Get image pixels
     pixels = list(image.getdata())
@@ -63,20 +65,23 @@ def decode_data(image):
             # Extract the least significant bit
             binary_data += str(value & 1)
     
-    # Find the end of message marker
-    end_marker = binary_data.find('1111111111111110')
-    if end_marker == -1:
-        raise ValueError("No end marker found - possibly corrupted data")
+    # Find the data length (first 32 bits)
+    if len(binary_data) < 32:
+        raise ValueError("No data found in image")
     
-    # Extract the actual data (before the end marker)
-    binary_data = binary_data[:end_marker]
+    # Extract the data length
+    length_bits = binary_data[:32]
+    data_len = int(length_bits, 2)
+    
+    # Extract the actual data
+    data_bits = binary_data[32:32+data_len*8]
     
     # Convert binary to bytes
     bytes_data = bytearray()
-    for i in range(0, len(binary_data), 8):
-        if i + 8 > len(binary_data):
+    for i in range(0, len(data_bits), 8):
+        if i + 8 > len(data_bits):
             break
-        byte = binary_data[i:i+8]
+        byte = data_bits[i:i+8]
         bytes_data.append(int(byte, 2))
     
     return bytes(bytes_data)
@@ -134,7 +139,7 @@ def encode():
             file_data = secret_file.read()
             # Prepend filename to data
             filename = secret_file.filename.encode('utf-8')
-            secret_data = len(filename).to_bytes(4, 'big') + filename + file_data
+            secret_data = struct.pack('>I', len(filename)) + filename + file_data
         
         # Encrypt if requested
         if use_encryption:
@@ -190,7 +195,7 @@ def decode():
         try:
             # Check if data has file header (filename length + filename)
             if len(decoded_data) >= 4:
-                filename_len = int.from_bytes(decoded_data[:4], 'big')
+                filename_len = struct.unpack('>I', decoded_data[:4])[0]
                 if filename_len > 0 and len(decoded_data) >= 4 + filename_len:
                     filename = decoded_data[4:4+filename_len].decode('utf-8')
                     file_data = decoded_data[4+filename_len:]
